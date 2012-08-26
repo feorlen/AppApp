@@ -107,7 +107,7 @@ CGFloat const ANStatusViewCellAvatarWidth = 50.0;
         
         // username
         usernameTextLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 10, 180, 15)];
-        usernameTextLabel.font = [UIFont fontWithName:@"Helvetica-Bold" size:12.0f];
+        usernameTextLabel.font = [UIFont fontWithName:@"Helvetica-Bold" size:16.0f];
         usernameTextLabel.backgroundColor = postColor;
         usernameTextLabel.textColor = textColor;
         usernameTextLabel.highlightedTextColor = highlightedTextColor;
@@ -115,7 +115,7 @@ CGFloat const ANStatusViewCellAvatarWidth = 50.0;
         
         //created_atTextLabel
         created_atTextLabel = [[UILabel alloc] initWithFrame:CGRectMake(185, 10, 55, 15)];
-        created_atTextLabel.font = [UIFont fontWithName:@"Helvetica" size:12.0f];
+        created_atTextLabel.font = [UIFont fontWithName:@"Helvetica" size:16.0f];
         created_atTextLabel.backgroundColor = postColor;
         created_atTextLabel.highlightedTextColor = highlightedTextColor;
         created_atTextLabel.textColor = [UIColor grayColor];

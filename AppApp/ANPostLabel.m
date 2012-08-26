@@ -106,7 +106,7 @@
         NSUInteger len = [item unsignedIntegerForKey:@"len"];
         NSString *keyValue = [item stringForKey:key];
         NSRange range = { .location = pos, .length = len };
-        UIFont *font = [UIFont fontWithName:@"Helvetica" size:14.0f];
+        UIFont *font = [UIFont fontWithName:@"Helvetica" size:18.0f];
         CTFontRef ctFont = CTFontCreateWithName((__bridge CFStringRef)font.fontName, font.pointSize, NULL);
 
         if (len > [attrString length]-1)
@@ -143,7 +143,7 @@
     NSArray *links = [_postData arrayForKeyPath:@"entities.links"];
     NSArray *rawMentions = [_postData arrayForKeyPath:@"entities.mentions"];
     
-    UIFont *font = [UIFont fontWithName:@"Helvetica" size:14.0f];
+    UIFont *font = [UIFont fontWithName:@"Helvetica" size:18.0f];
     CTFontRef ctFont = CTFontCreateWithName((__bridge CFStringRef)font.fontName, font.pointSize, NULL);
     [postString addAttribute:(NSString*)kCTFontAttributeName
                         value:(__bridge id)ctFont
