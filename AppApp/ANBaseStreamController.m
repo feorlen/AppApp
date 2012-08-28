@@ -42,8 +42,12 @@
 #import "MKInfoPanel.h"
 #import "TSMiniWebBrowser.h"
 
+#import "SVProgressHUD.h"
 
-@interface ANBaseStreamController ()
+
+@interface ANBaseStreamController () {
+    BOOL _hasFirstLoadOccurred;
+}
 
 @end
 
@@ -64,13 +68,14 @@
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose
                                                                                            target:self
                                                                                            action:@selector(newPostAction:)];
+    
+    self.tableView.backgroundColor = [UIColor colorWithRed:1/255.0f green:76/255.0f blue:106/255.0f alpha:1.0f];
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
     self.tableView.backgroundView = [[UIImageView alloc] initWithImage:
                                      [[UIImage imageNamed:@"statusCellBackground"]
                                       resizableImageWithCapInsets:UIEdgeInsetsZero]];
     
     // setup refresh/load more
-    
     self.headerView = [ANStreamHeaderView loadFromNib];
     self.footerView = [ANStreamFooterView loadFromNib];
     
@@ -236,15 +241,17 @@
                 [self.navigationController pushViewController:hashtagController animated:YES];
             }
             else
-            if ([type isEqualToString:@"name"])
+            if ([type isEqualToString:@"name"] && ![SVProgressHUD isVisible])
             {
                 NSString *userID = value;
+                 [SVProgressHUD showWithStatus:@"Fetching user..." maskType:SVProgressHUDMaskTypeBlack];
                 [[ANAPICall sharedAppAPI] getUser:userID uiCompletionBlock:^(id dataObject, NSError *error) {
                     if (![[ANAPICall sharedAppAPI] handledError:error dataObject:dataObject view:self.view])
                     {
                         NSDictionary *userData = dataObject;
                         ANUserViewController* userViewController = [[ANUserViewController alloc] initWithUserDictionary:userData];
                         [self.navigationController pushViewController:userViewController animated:YES];
+                        [SVProgressHUD dismiss];
                     }
                 }];
             }
@@ -566,6 +573,8 @@
 //
 - (void) willBeginLoadingMore
 {
+    if (!_hasFirstLoadOccurred) return;
+    
     ANStreamFooterView *fv = (ANStreamFooterView *)self.footerView;
     [fv.activityIndicator startAnimating];
 }
@@ -587,6 +596,8 @@
         // Just show a textual info that there are no more items to load
         fv.infoLabel.hidden = NO;
     }
+    
+    _hasFirstLoadOccurred = YES;
 }
 
 - (BOOL) loadMore
