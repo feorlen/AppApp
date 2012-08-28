@@ -1538,8 +1538,8 @@
 		00B4742A15D38E3C00F767CE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "iPhone Distribution";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "AppApp/AppApp-Prefix.pch";
 				GCC_PREPROCESSOR_DEFINITIONS = "ENABLEPNS=0";
@@ -1557,6 +1557,7 @@
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				USER_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/Externals/DTCoreText\"/** $(SRCROOT)/Externals/AppAppC/**";
+				VALIDATE_PRODUCT = NO;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -1680,6 +1681,60 @@
 			};
 			name = "Release PNS";
 		};
+		CE7BE16E15EC756D00EF119D /* distribution */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Distribution";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				COPY_PHASE_STRIP = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = /usr/include/libxml2;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
+				OTHER_LDFLAGS = "-ObjC";
+				PROVISIONING_PROFILE = "";
+				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
+				SDKROOT = iphoneos;
+				USER_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/Externals/DTCoreText\"/**";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = distribution;
+		};
+		CE7BE16F15EC756D00EF119D /* distribution */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "AppApp/AppApp-Prefix.pch";
+				GCC_PREPROCESSOR_DEFINITIONS = "ENABLEPNS=0";
+				INFOPLIST_FILE = "AppApp/AppApp-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/Externals/TestFlightSDK1.0\"",
+				);
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-all_load",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
+				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
+				USER_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/Externals/DTCoreText\"/** $(SRCROOT)/Externals/AppAppC/**";
+				WRAPPER_EXTENSION = app;
+			};
+			name = distribution;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1689,6 +1744,7 @@
 				00B4742615D38E3C00F767CE /* Debug */,
 				CA713C8F15E70C1300A12A1F /* Debug PNS */,
 				00B4742715D38E3C00F767CE /* Release */,
+				CE7BE16E15EC756D00EF119D /* distribution */,
 				CA713C9115E70C2000A12A1F /* Release PNS */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1700,6 +1756,7 @@
 				00B4742915D38E3C00F767CE /* Debug */,
 				CA713C9015E70C1300A12A1F /* Debug PNS */,
 				00B4742A15D38E3C00F767CE /* Release */,
+				CE7BE16F15EC756D00EF119D /* distribution */,
 				CA713C9215E70C2000A12A1F /* Release PNS */,
 			);
 			defaultConfigurationIsVisible = 0;
