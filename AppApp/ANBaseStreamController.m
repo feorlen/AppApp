@@ -52,12 +52,16 @@
 @end
 
 @implementation ANBaseStreamController
-@synthesize currentToolbarView, btnReply, btnRepost, btnConversation;
+{
+    NSInteger actionBarRow;
+}
 
 - (void)viewDidLoad
 {
     self.title = self.sideMenuTitle;
     [super viewDidLoad];
+    
+    actionBarRow = -1;
     
     [self setupSideMenuBarButtonItem];
 
@@ -69,8 +73,9 @@
                                                                                            target:self
                                                                                            action:@selector(newPostAction:)];
     
-    self.tableView.backgroundColor = [UIColor colorWithRed:1/255.0f green:76/255.0f blue:106/255.0f alpha:1.0f];
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    // this stuff kills drawing performance.
+    self.tableView.backgroundColor = [UIColor colorWithRed:1/255.0f green:76/255.0f blue:106/255.0f alpha:1.0f];
     self.tableView.backgroundView = [[UIImageView alloc] initWithImage:
                                      [[UIImage imageNamed:@"statusCellBackground"]
                                       resizableImageWithCapInsets:UIEdgeInsetsZero]];
@@ -80,6 +85,11 @@
     self.footerView = [ANStreamFooterView loadFromNib];
     
     self.navigationController.navigationBar.tintColor = [UIColor colorWithRed:0.011 green:0.486 blue:0.682 alpha:1];
+    
+    // iOS 5 and up, should make tableViews more buttery (thanks @mattyohe)
+        NSString *myIdentifier = @"ANStatusViewCell";
+    [self.tableView registerNib:[UINib nibWithNibName:@"ANStatusCell" bundle:nil]
+                  forCellReuseIdentifier:myIdentifier];
     
     // add gestures
     UISwipeGestureRecognizer *detailsRecognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(swipeToSideMenu:)];
@@ -92,49 +102,25 @@
     
     if ([[ANAPICall sharedAppAPI] hasAccessToken])
         [self refresh];
-        
-    if (!currentToolbarView) {
-        self.currentToolbarView = [[UIView alloc] initWithFrame:CGRectZero];
-        self.currentToolbarView.backgroundColor = [UIColor colorWithHue:0.574 saturation:0.036 brightness:0.984 alpha:1];
-        
-        UIImageView *background = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"Action_Bar_Separator.png"]];
-        background.frame = CGRectMake(0,0,258,61);
-       
-        self.btnReply = [UIButton buttonWithType:UIButtonTypeCustom];
-        [self.btnReply addTarget:self action:@selector(replyToFromStream:) forControlEvents:UIControlEventTouchUpInside];
-        UIImage *btnReplyImg = [UIImage imageNamed:@"Action_Bar_Reply.png"];
-        [self.btnReply setImage:btnReplyImg forState:UIControlStateNormal];
-        [self.btnReply setImage:btnReplyImg forState:UIControlStateHighlighted];
-        
-        [self.btnReply setFrame:CGRectMake(10,10,40,40)];
-     
-        UIImage *btnRepostImg = [UIImage imageNamed:@"Action_Bar_Repost.png"];
-        self.btnRepost = [UIButton buttonWithType:UIButtonTypeCustom];
-        [self.btnRepost addTarget:self action:@selector(repostFromStream:) forControlEvents:UIControlEventTouchUpInside];
-        [self.btnRepost setImage:btnRepostImg forState:UIControlStateNormal];
-        [self.btnRepost setImage:btnRepostImg forState:UIControlStateHighlighted];
-        
-        [self.btnRepost setFrame:CGRectMake(60,10,40,40)];
-
-        UIImage *btnConversationImg = [UIImage imageNamed:@"Action_Bar_Conversation.png"];
-        UIImage *btnConversationImgDisabled = [UIImage imageNamed:@"Action_Bar_Conversation_Disabled.png"];
-
-        self.btnConversation = [UIButton buttonWithType:UIButtonTypeCustom];
-        [self.btnConversation addTarget:self action:@selector(showConversation:) forControlEvents:UIControlEventTouchUpInside];
-        [self.btnConversation setImage:btnConversationImg forState:UIControlStateNormal];
-        [self.btnConversation setImage:btnConversationImg forState:UIControlStateHighlighted];
-        [self.btnConversation setImage:btnConversationImgDisabled forState:UIControlStateDisabled];
-        [self.btnConversation setFrame:CGRectMake(110,10,40,40)];
-        
-        [self.currentToolbarView addSubview:background];
-        [self.currentToolbarView addSubview:self.btnReply];
-        [self.currentToolbarView addSubview:self.btnRepost];
-        [self.currentToolbarView addSubview:self.btnConversation]; // self'ed because we need to be able to hide it on posts without replies (@ralf)
-    }
     
-    toolbarIsVisible = false;
-    currentSelection = nil;
-    newSelection = nil;
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applyChangedSettings:) name:UIApplicationDidBecomeActiveNotification object:nil];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    if (self.navigationController.visibleViewController != self)
+        self.view = nil;
+}
+
+- (void)applyChangedSettings:(NSNotification *)notification
+{
+    [[NSUserDefaults standardUserDefaults] synchronize];
+    [self.tableView reloadData];
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
 }
 
 - (void)viewDidUnload
@@ -146,7 +132,9 @@
 
 - (void)dealloc
 {
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationDidBecomeActiveNotification object:nil];
     self.tableView.delegate = nil;
+    self.tableView.dataSource = nil;
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -168,27 +156,10 @@
     [self presentModalViewController:postView animated:YES];
 }
 
-- (void)addOverlayToUserButton:(UIButton*)button
-{
-    CAGradientLayer *gradientLayer = [CAGradientLayer layer];
-    gradientLayer.frame = button.layer.bounds;
-    gradientLayer.colors = @[ (id)[UIColor colorWithWhite:0.3f alpha:0.4f].CGColor, (id)[UIColor colorWithWhite:0.0f alpha:0.4f].CGColor ];
-    gradientLayer.locations = @[ @0, @0.5 ];
-    gradientLayer.name = @"overlayGradient";
-    [button.layer addSublayer:gradientLayer];
-}
-
-- (void)removeLayerFromView:(UIView*)view
-{
-    CAGradientLayer *gradientLayer = [[view.layer.sublayers filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"name == %@", @"overlayGradient"]] objectAtIndex:0];
-    [gradientLayer removeFromSuperlayer];
-}
-
 - (void)showUserAction:(id)sender
 {
     UIControl *control = (UIControl *)sender;
-    [self removeLayerFromView:control];
-    NSUInteger index = [control tag];
+    NSUInteger index = control.tag;
     NSDictionary *postDict = [streamData objectAtIndex:index];
     NSDictionary *userDict = [postDict objectForKey:@"user"];
     ANUserViewController *userController = [[ANUserViewController alloc] initWithUserDictionary:userDict];
@@ -211,55 +182,82 @@
 {
     NSDictionary *postData = [streamData objectAtIndex:[indexPath row]];
     ANPostLabel *tempLabel = [[ANPostLabel alloc] initWithFrame:CGRectZero];
-    tempLabel.postData = postData;
+    tempLabel.enableDataDetectors = NO;
+    tempLabel.enableLinks = NO;
+    tempLabel.postText = [postData stringForKey:@"text"];
     
-    CGSize statusLabelSize = [tempLabel suggestedFrameSizeToFitEntireStringConstraintedToWidth:230];
+    CGSize statusLabelSize = [tempLabel sizeThatFits:CGSizeMake(230, 10000)];
     
-    CGFloat height = MAX(ANStatusViewCellUsernameTextHeight + statusLabelSize.height, ANStatusViewCellAvatarHeight)
-            + ANStatusViewCellTopMargin + ANStatusViewCellBottomMargin;
-    
-    if ((currentSelection) && (currentSelection.row == indexPath.row))
-    {
-        height += 61;
-    }
+    CGFloat labelHeight = MAX(statusLabelSize.height, [ANStatusCell baseTextHeight]);
+    CGFloat cellHeight = ([ANStatusCell baseHeight:(actionBarRow == indexPath.row)] - [ANStatusCell baseTextHeight]) + labelHeight;
 
-    return height;
+    return cellHeight;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     static NSString *CellIdentifier = @"ANStatusViewCell";
-    ANStatusViewCell *cell  = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+    ANStatusCell *cell  = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     if (cell == nil) {
-        cell = [[ANStatusViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier];
-        cell.statusTextLabel.tapHandler = ^BOOL (NSString *type, NSString *value) {
+        cell = [ANStatusCell loadFromNib];
+        [cell prepareForReuse];
+        
+        // this only needs to be done once, otherwise actions will keep piling up since we never remove them.
+        // also, since we use an index, they're straight up legit pa'nuh.
+        [cell.replyButton addTarget:self action:@selector(replyToFromStream:) forControlEvents:UIControlEventTouchUpInside];
+        [cell.repostButton addTarget:self action:@selector(repostFromStream:) forControlEvents:UIControlEventTouchUpInside];
+        [cell.convoButton addTarget:self action:@selector(showConversation:) forControlEvents:UIControlEventTouchUpInside];
+        
+        [cell.showUserButton addTarget:self action:@selector(showUserAction:) forControlEvents:UIControlEventTouchUpInside];
+
+        __weak typeof(self) blockSelf = self;
+
+        cell.statusTextLabel.tapHandler = ^BOOL (NSURL *url) {
             BOOL result = NO;
-            if ([type isEqualToString:@"hashtag"])
+            if ([url.scheme isEqualToString:@"adnhashtag"])
             {
-                NSString *hashtag = value;
+                NSString *hashtag = [[url absoluteString] stringByReplacingOccurrencesOfString:@"adnhashtag://#" withString:@""];
                 ANHashtagStreamController *hashtagController = [[ANHashtagStreamController alloc] initWithHashtag:hashtag];
-                [self.navigationController pushViewController:hashtagController animated:YES];
+                [blockSelf.navigationController pushViewController:hashtagController animated:YES];
             }
             else
-            if ([type isEqualToString:@"name"] && ![SVProgressHUD isVisible])
+            if ([url.scheme isEqualToString:@"adnuser"] && ![SVProgressHUD isVisible])
             {
-                NSString *userID = value;
-                 [SVProgressHUD showWithStatus:@"Fetching user..." maskType:SVProgressHUDMaskTypeBlack];
+                NSString *userID = [[url absoluteString] stringByReplacingOccurrencesOfString:@"adnuser://" withString:@""];;
+                [SVProgressHUD showWithStatus:@"Fetching user..." maskType:SVProgressHUDMaskTypeBlack];
                 [[ANAPICall sharedAppAPI] getUser:userID uiCompletionBlock:^(id dataObject, NSError *error) {
-                    if (![[ANAPICall sharedAppAPI] handledError:error dataObject:dataObject view:self.view])
+                    if (![[ANAPICall sharedAppAPI] handledError:error dataObject:dataObject view:blockSelf.view])
                     {
                         NSDictionary *userData = dataObject;
                         ANUserViewController* userViewController = [[ANUserViewController alloc] initWithUserDictionary:userData];
-                        [self.navigationController pushViewController:userViewController animated:YES];
+                        [blockSelf.navigationController pushViewController:userViewController animated:YES];
                         [SVProgressHUD dismiss];
                     }
                 }];
             }
             else
-            if ([type isEqualToString:@"link"])
             {
-                NSURL *url = [NSURL URLWithString:value];
-                if ([[UIApplication sharedApplication] canOpenURL:url])
+                NSString *urlString = [url absoluteString];
+                NSURL *newURL = url;
+                
+                // make sure we pick up any changes.
+                [[NSUserDefaults standardUserDefaults] synchronize];
+                BOOL useSafari = [[[NSUserDefaults standardUserDefaults] objectForKey:@"prefUseSafari"] boolValue];
+                BOOL useChrome = [[[NSUserDefaults standardUserDefaults] objectForKey:@"prefUseChrome"] boolValue];
+                
+                if (useChrome)
+                {
+                    NSString *chromeString = [urlString stringByReplacingCharactersInRange:NSMakeRange(0, 4) withString:@"googlechrome"];
+                    newURL = [NSURL URLWithString:chromeString];
+                }
+                
+                BOOL canOpenURL = [[UIApplication sharedApplication] canOpenURL:newURL];
+                
+                if ((useSafari || useChrome) && canOpenURL)
+                {
+                    [[UIApplication sharedApplication] openURL:newURL];
+                }
+                else
                 {
                     TSMiniWebBrowser *webBrowser = [[TSMiniWebBrowser alloc] initWithUrl:url];
                     webBrowser.showActionButton = YES;
@@ -269,25 +267,38 @@
                     if (webBrowser.mode == TSMiniWebBrowserModeModal)
                     {
                         webBrowser.modalDismissButtonTitle = @"Home";
-                        [self presentModalViewController:webBrowser animated:YES];
+                        [blockSelf presentModalViewController:webBrowser animated:YES];
                     }
                     else
                     if(webBrowser.mode == TSMiniWebBrowserModeNavigation)
                     {
-                        [self.navigationController pushViewController:webBrowser animated:YES];
+                        [blockSelf.navigationController pushViewController:webBrowser animated:YES];
                     }
                 }
-
             }
             return result;
         };
         
-        __weak typeof(self) blockSelf = self;
-        cell.statusTextLabel.longPressHandler = ^BOOL (NSString *type, NSString *value) {
-            if([type isEqualToString:@"link"])
+        cell.statusTextLabel.longPressHandler = ^BOOL (NSURL *url) {
+            NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+            if([url.scheme isEqualToString:@"http"])
             {
-                UIActionSheet *sheet = [[UIActionSheet alloc] initWithTitle:value delegate:self cancelButtonTitle:NSLocalizedString(@"Cancel", @"") destructiveButtonTitle:nil otherButtonTitles:NSLocalizedString(@"Send to Pocket", @""), NSLocalizedString(@"Send to Instapaper", @""), nil];
-                [sheet showInView:blockSelf.view];
+                NSString *serviceName = [defaults objectForKey:@"prefReadLater"];
+                if(serviceName && [serviceName isEqualToString:@""] == NO)
+                {
+                    ANReadLaterManager *manager = [[ANReadLaterManager alloc] initWithDelegate:self];
+                    ANReadLaterType readLaterService = NSNotFound;
+                    if([serviceName isEqualToString:@"Pocket"])
+                        readLaterService = kANReadLaterTypePocket;
+                    else if([serviceName isEqualToString:@"Instapaper"])
+                        readLaterService = kANReadLaterTypeInstapaper;
+                    [manager saveURL:url serviceType:readLaterService];
+                }
+                else
+                {
+                    UIActionSheet *sheet = [[UIActionSheet alloc] initWithTitle:[url absoluteString] delegate:blockSelf cancelButtonTitle:NSLocalizedString(@"Cancel", @"") destructiveButtonTitle:nil otherButtonTitles:NSLocalizedString(@"Send to Pocket", @""), NSLocalizedString(@"Send to Instapaper", @""), nil];
+                    [sheet showInView:blockSelf.view];
+                }
             }
             else
             {
@@ -301,73 +312,53 @@
     NSDictionary *statusDict = [streamData objectAtIndex:[indexPath row]];
     
     cell.postData = statusDict;
+    
+    if (actionBarRow == indexPath.row)
+        cell.showActionBar = YES;
+    else
+        cell.showActionBar = NO;
 
     // TODO: i know this is janky.  fix it.
     cell.showUserButton.tag = indexPath.row;
     // END JANKY.
 
-    [cell.showUserButton addTarget:self action:@selector(addOverlayToUserButton:) forControlEvents:UIControlEventTouchDown];
-    [cell.showUserButton addTarget:self action:@selector(removeLayerFromView:) forControlEvents:UIControlEventTouchDragOutside];
-    [cell.showUserButton addTarget:self action:@selector(showUserAction:) forControlEvents:UIControlEventTouchUpInside];
-    
     return cell;
 }
-
-/*
-// Override to support conditional editing of the table view.
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    // Return NO if you do not want the specified item to be editable.
-    return YES;
-}
-*/
-
-/*
-// Override to support editing the table view.
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    if (editingStyle == UITableViewCellEditingStyleDelete) {
-        // Delete the row from the data source
-        [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
-    }   
-    else if (editingStyle == UITableViewCellEditingStyleInsert) {
-        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-    }   
-}
-*/
-
-/*
-// Override to support rearranging the table view.
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath
-{
-}
-*/
-
-/*
-// Override to support conditional rearranging of the table view.
-- (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    // Return NO if you do not want the item to be re-orderable.
-    return YES;
-}
-*/
 
 #pragma mark - Table view delegate
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    [self toggleToolbarAtIndexPath:indexPath];
+    NSMutableArray *rowsToReload = [NSMutableArray arrayWithCapacity:2];
+    if (actionBarRow > -1)
+    {
+        NSIndexPath *oldRow = [NSIndexPath indexPathForRow:actionBarRow inSection:0];
+        [rowsToReload addObject:oldRow];
+    }
+    ANStatusCell *cell = (ANStatusCell *)[tableView cellForRowAtIndexPath:indexPath];
+    if (cell.showActionBar)
+        actionBarRow = -1;
+    else
+    {
+        actionBarRow = indexPath.row;
+        [rowsToReload addObject:indexPath];
+    }
+    [tableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationFade];
+    
+    //ANHashtagStreamController *hashtagController = [[ANHashtagStreamController alloc] initWithHashtag:@"appapp"];
+    //[self.navigationController pushViewController:hashtagController animated:YES];
+
 }
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView
 {
-    if (toolbarIsVisible) {
-        [self.currentToolbarView removeFromSuperview];
-        toolbarIsVisible = false;
-        currentSelection = nil;
-        [self.tableView beginUpdates];
-        [self.tableView endUpdates];
+    if (actionBarRow != -1)
+    {
+        NSIndexPath *oldRow = [NSIndexPath indexPathForRow:actionBarRow inSection:0];
+        actionBarRow = -1;
+        [self.tableView reloadRowsAtIndexPaths:@[oldRow] withRowAnimation:UITableViewRowAnimationNone];
     }
+
     [super scrollViewDidScroll:scrollView];
 }
 
@@ -376,14 +367,19 @@
 - (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex
 {
     ANReadLaterManager *manager = [[ANReadLaterManager alloc] initWithDelegate:self];
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 
     switch(buttonIndex)
     {
         case 0: // Pocket
             [manager saveURL:[NSURL URLWithString:actionSheet.title] serviceType:kANReadLaterTypePocket];
+            [defaults setObject:@"Pocket" forKey:@"prefReadLater"];
+            [defaults synchronize];
             break;
         case 1:
             [manager saveURL:[NSURL URLWithString:actionSheet.title] serviceType:kANReadLaterTypeInstapaper];
+            [defaults setObject:@"Instapaper" forKey:@"prefReadLater"];
+            [defaults synchronize];
             break;
     }
 }
@@ -426,94 +422,6 @@
     [self.navigationController pushViewController:detailController animated:YES];
 }
 
-- (void)swipeToToolbar:(UISwipeGestureRecognizer *)gestureRecognizer
-{
-    
-    CGPoint swipeLocation = [gestureRecognizer locationInView:self.tableView];
-    NSIndexPath *indexPath = [self.tableView indexPathForRowAtPoint:swipeLocation];
-    ANStatusViewCell *currentCell = (ANStatusViewCell *)[self.tableView cellForRowAtIndexPath:indexPath];
-    
-    newSelection = indexPath;
-    
-    if ((currentSelection) && (newSelection.row == currentSelection.row)) { // user swiped on same cell twice
-        if (!toolbarIsVisible) {
-            [self.currentToolbarView setFrame:CGRectMake(71, currentCell.frame.size.height, 260, 47)];
-            self.currentToolbarView.tag = indexPath.row;
-            NSLog(@"Tag: %i",  self.currentToolbarView.tag);
-            [self toggleToolbarButtonsForIndexPath:indexPath];
-            [currentCell addSubview:self.currentToolbarView];
-            toolbarIsVisible = true;
-            currentSelection = indexPath;
-        } else {
-            [self hideToolbar];
-        }
-    } else { // user swiped on new cell
-        [self.currentToolbarView setFrame:CGRectMake(71, currentCell.frame.size.height, 260, 47)];
-        self.currentToolbarView.tag = indexPath.row;
-        [self toggleToolbarButtonsForIndexPath:indexPath];
-        [currentCell addSubview:self.currentToolbarView];
-        toolbarIsVisible = true;
-        currentSelection = indexPath;
-    }
-        
-    [self.tableView beginUpdates];
-    [self.tableView endUpdates];
-}
-
-- (void)toggleToolbarAtIndexPath:(NSIndexPath *)indexPath
-{
-    [self.tableView beginUpdates];
-
-    ANStatusViewCell *currentCell = (ANStatusViewCell *)[self.tableView cellForRowAtIndexPath:indexPath];    
-    newSelection = indexPath;
-    
-    if ((currentSelection) && (newSelection.row == currentSelection.row)) { // user swiped on same cell twice
-        if (!toolbarIsVisible) {
-            [self.currentToolbarView setFrame:CGRectMake(71, currentCell.frame.size.height, 260, 47)];
-            self.currentToolbarView.tag = indexPath.row;
-            NSLog(@"Tag: %i",  self.currentToolbarView.tag);
-            [self toggleToolbarButtonsForIndexPath:indexPath];
-            [currentCell addSubview:self.currentToolbarView];
-            toolbarIsVisible = true;
-            currentSelection = indexPath;
-        } else {
-            [self hideToolbar];
-        }
-    } else { // user swiped on new cell
-        [self.currentToolbarView setFrame:CGRectMake(71, currentCell.frame.size.height, 260, 47)];
-        self.currentToolbarView.tag = indexPath.row;
-        [self toggleToolbarButtonsForIndexPath:indexPath];
-        [currentCell addSubview:self.currentToolbarView];
-
-        toolbarIsVisible = true;
-        currentSelection = indexPath;
-    }
-    
-    [self.tableView endUpdates];
-    
-}
-
-- (void)hideToolbar
-{
-    [self.currentToolbarView removeFromSuperview];
-    toolbarIsVisible = false;
-    currentSelection = nil;
-}
-
-- (void)toggleToolbarButtonsForIndexPath:(NSIndexPath *)indexPath
-{
-    NSDictionary *postData = [streamData objectAtIndex:indexPath.row];
-    NSString *numReplies = [postData stringForKeyPath:@"num_replies"];
-    NSString *isReplyTo = [postData stringForKeyPath:@"reply_to"];
-    if (([numReplies isEqualToString:@"0"]) && (!isReplyTo))
-    {
-        self.btnConversation.enabled = NO;
-    } else
-    {
-        self.btnConversation.enabled = YES;
-    }
-}
-
 - (void)swipeToSideMenu:(UISwipeGestureRecognizer *)gestureRecognizer
 {
     //CGPoint swipeLocation = [gestureRecognizer locationInView:self.tableView];
@@ -532,6 +440,12 @@
     ANStreamHeaderView *hv = (ANStreamHeaderView *)self.headerView;
     [hv.activityIndicator startAnimating];
     hv.title.text = @"Loading...";
+    
+    // show the cap for the top cell.
+    if ([streamData count] > 0)
+        hv.cellTopImage.hidden = NO;
+    else
+        hv.cellTopImage.hidden = YES;
 }
 
 - (void) unpinHeaderView
@@ -539,7 +453,13 @@
     [super unpinHeaderView];
     
     // do custom handling for the header view
-    [[(ANStreamHeaderView *)self.headerView activityIndicator] stopAnimating];
+    ANStreamHeaderView *hv = (ANStreamHeaderView *)self.headerView;
+    [[hv activityIndicator] stopAnimating];
+    // show the cap for the top cell.
+    if ([streamData count] > 0)
+        hv.cellTopImage.hidden = NO;
+    else
+        hv.cellTopImage.hidden = YES;
 }
 
 // Update the header text while the user is dragging
@@ -714,20 +634,30 @@
 
 #pragma mark -
 #pragma mark Action Bar methods
-- (void)replyToFromStream:(id)sender {
-    NSDictionary *postData = [streamData objectAtIndex:[[(UIButton *)sender superview] tag]];
+
+- (void)replyToFromStream:(id)sender
+{
+    if (actionBarRow == -1)
+        return;
+    NSDictionary *postData = [streamData objectAtIndex:actionBarRow];
     ANPostStatusViewController *postView = [[ANPostStatusViewController alloc] initWithPostData:postData postMode:ANPostModeReply];
     [self presentModalViewController:postView animated:YES];
 }
 
-- (void)repostFromStream:(id)sender {
-    NSDictionary *postData = [streamData objectAtIndex:[[(UIButton *)sender superview] tag]];
+- (void)repostFromStream:(id)sender
+{
+    if (actionBarRow == -1)
+        return;
+    NSDictionary *postData = [streamData objectAtIndex:actionBarRow];
     ANPostStatusViewController *postView = [[ANPostStatusViewController alloc] initWithPostData:postData postMode:ANPostModeRepost];
     [self presentModalViewController:postView animated:YES];
 }
 
-- (void)showConversation:(id)sender {
-    NSDictionary *postData = [streamData objectAtIndex:[[(UIButton *)sender superview] tag]];
+- (void)showConversation:(id)sender
+{
+    if (actionBarRow == -1)
+        return;
+    NSDictionary *postData = [streamData objectAtIndex:actionBarRow];
     ANPostDetailController *detailController = [[ANPostDetailController alloc] initWithPostData:postData];
     [self.navigationController pushViewController:detailController animated:YES];
 }

@@ -90,6 +90,11 @@
     return self;
 }
 
+- (void)dealloc
+{
+    
+}
+
 - (NSString *)sideMenuTitle
 {
     return @"Me";
@@ -97,7 +102,7 @@
 
 - (NSString *)sideMenuImageName
 {
-    return @"sidemenu_usermentions_icon";
+    return @"sidemenu_me_icon";
 }
 
 - (void)configureFromUserData
@@ -456,16 +461,22 @@
                 UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
                 button.frame = CGRectMake(0,0,110,90);
                 [button addTarget:self action:@selector(viewPosts:) forControlEvents:UIControlEventTouchUpInside];
+                [button setAccessibilityLabel:postCount.text];
+                [button setAccessibilityHint:@"posts"];
                 [cell.contentView addSubview:button];
                 
                 button = [UIButton buttonWithType:UIButtonTypeCustom];
                 button.frame = CGRectMake(110,0,106,90);
                 [button addTarget:self action:@selector(viewFollowers:) forControlEvents:UIControlEventTouchUpInside];
+                [button setAccessibilityLabel:followersCount.text];
+                [button setAccessibilityHint:@"followers"];
                 [cell.contentView addSubview:button];
                 
                 button = [UIButton buttonWithType:UIButtonTypeCustom];
                 button.frame = CGRectMake(216,0,104,90);
                 [button addTarget:self action:@selector(viewFollowing:) forControlEvents:UIControlEventTouchUpInside];
+                [button setAccessibilityLabel:followingCount.text];
+                [button setAccessibilityHint:@"following"];
                 [cell.contentView addSubview:button];
             }
             

@@ -173,6 +173,7 @@
 
 -(void) updateCharCountLabel: (NSNotification *) notification
 {
+    // counts down from 256
     NSInteger textLength = 256 - [postTextView.text length];
     
     // account for the imgur url.
@@ -180,11 +181,13 @@
         textLength -= 29;
     
     // unblock / block post button
-    if(textLength > 0 && textLength < 256) {
+    if(textLength >= 0 && textLength < 256) {
         postButton.enabled = YES;
     } else {
         postButton.enabled = NO;
     }
+    
+    NSLog(@"%i", textLength);
     
     characterCountLabel.text = [NSString stringWithFormat:@"%i", textLength];
 }
@@ -196,7 +199,7 @@
 
 - (void)internalPerformADNPost
 {
-    if([postTextView.text length] < 256)
+    if([postTextView.text length] <= 256)
     {
         if (replyToID)
         {
@@ -226,7 +229,7 @@
 
 -(IBAction) postStatusToAppNet:(id)sender
 {
-    if([postTextView.text length] < 256)
+    if([postTextView.text length] <= 256)
     {
         [self.postTextView resignFirstResponder];
         if (postImage)
@@ -465,6 +468,9 @@
 
 - (BOOL)textView:(UITextView*)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString*)text
 {
+    NSMutableCharacterSet *validCharacterSet = [NSMutableCharacterSet characterSetWithCharactersInString:@"_àáâäæãåāèéêëēėęîïíīįìôöòóœøōõûüùúūñńÿßśšłžźżçćčÈÉÊËĒĖĘŸÛÜÙÚŪÎÏÍĪĮÌÔÖÒÓŒØŌÕÀÁÂÄÆÃÅĀŚŠŁŽŹŻÇĆČŃÑM"];
+    [validCharacterSet formUnionWithCharacterSet:[NSCharacterSet alphanumericCharacterSet]];
+
     NSString* firstCharacter = nil;
     if(range.length == 0)
         firstCharacter = text;
@@ -490,23 +496,7 @@
             [currentCapture appendString:text];
         }
     }
-    else if(currentCapture && [firstCharacter isEqualToString:@" "])
-    {
-        // Finished typing
-        ReferencedEntity* re = [ReferencedEntity referencedEntityWithType:currentCaptureType name:[currentCapture substringFromIndex:1]];
-        NSError* error = nil;
-        [re save:&error successCallback:^{
-            currentCapture = nil;
-            currentCaptureRange = NSMakeRange(NSNotFound, 0);
-        }];
-
-        [UIView animateWithDuration:0.35f animations:^{
-            CGRect frame = self.suggestionView.frame;
-            frame.origin.y = -frame.size.height;
-            self.suggestionView.frame = frame;
-        }];
-    }
-    else if(currentCapture)
+    else if(currentCapture && [firstCharacter rangeOfCharacterFromSet:validCharacterSet].location != NSNotFound)
     {
         // Normal typing when a capture has started, but before it has finished.
         if(range.length > 0)
@@ -562,6 +552,22 @@
                 }];
             }
         }
+    }
+    else if(currentCapture)
+    {
+        // Finished typing
+        ReferencedEntity* re = [ReferencedEntity referencedEntityWithType:currentCaptureType name:[currentCapture substringFromIndex:1]];
+        NSError* error = nil;
+        [re save:&error successCallback:^{
+            currentCapture = nil;
+            currentCaptureRange = NSMakeRange(NSNotFound, 0);
+        }];
+
+        [UIView animateWithDuration:0.35f animations:^{
+            CGRect frame = self.suggestionView.frame;
+            frame.origin.y = -frame.size.height;
+            self.suggestionView.frame = frame;
+        }];
     }
 
     return YES;
