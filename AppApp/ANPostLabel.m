@@ -47,7 +47,7 @@
         self.userInteractionEnabled = YES;
         self.lineBreakMode = UILineBreakModeWordWrap;
         self.numberOfLines = 0;
-        self.font = [UIFont fontWithName:@"Helvetica" size:14.0f];
+        self.font = [UIFont fontWithName:@"Helvetica" size:18.0f];
         self.textColor = [UIColor colorWithRed:30.0/255.0 green:88.0/255.0 blue:119.0/255.0 alpha:1.0];
         self.linkAttributes = @{ (NSString *)kCTForegroundColorAttributeName : (id)[UIColor colorWithRed:60.0/255.0 green:123.0/255.0 blue:184.0/255.0 alpha:1.0].CGColor };
         self.activeLinkAttributes = @{ (NSString *)kCTForegroundColorAttributeName : (id)[UIColor colorWithRed:60.0/255.0 green:123.0/255.0 blue:184.0/255.0 alpha:1.0].CGColor };
@@ -70,7 +70,7 @@
         self.userInteractionEnabled = YES;
         self.lineBreakMode = UILineBreakModeWordWrap;
         self.numberOfLines = 0;
-        self.font = [UIFont fontWithName:@"Helvetica" size:14.0f];
+        self.font = [UIFont fontWithName:@"Helvetica" size:18.0f];
         self.textColor = [UIColor colorWithRed:30.0/255.0 green:88.0/255.0 blue:119.0/255.0 alpha:1.0];
         self.linkAttributes = @{ (NSString *)kCTForegroundColorAttributeName : (id)[UIColor colorWithRed:60.0/255.0 green:123.0/255.0 blue:184.0/255.0 alpha:1.0].CGColor };
         self.activeLinkAttributes = @{ (NSString *)kCTForegroundColorAttributeName : (id)[UIColor colorWithRed:60.0/255.0 green:123.0/255.0 blue:184.0/255.0 alpha:1.0].CGColor };
@@ -167,7 +167,7 @@ CTFontRef CTFontCreateFromUIFont(UIFont *font)
 
     // some CT display optimizations
     NSNumber *kern = [NSNumber numberWithFloat:0];
-    CTFontRef fontRef = CTFontCreateFromUIFont([UIFont fontWithName:@"Helvetica" size:14.0f]);
+    CTFontRef fontRef = CTFontCreateFromUIFont([UIFont fontWithName:@"Helvetica" size:18.0f]);
     NSDictionary *attrs = @{
         (NSString *)kCTKernAttributeName : kern,
         (NSString *)kCTFontAttributeName : (__bridge id)fontRef,
